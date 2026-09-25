@@ -29,7 +29,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Flutter Web
-        run: flutter build web --release --base-href "/habit-tracker/"
+        run: flutter build web --release --no-tree-shake-icons --base-href "/habit-tracker/"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
