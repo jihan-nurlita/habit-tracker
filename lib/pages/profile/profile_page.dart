@@ -414,11 +414,6 @@ class ProfilePage extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: item.primaryColor,
                         shape: BoxShape.circle,
-                        border: Border.all(
-                          color: theme
-                              .borderColor, // 👈 Border lingkaran menyesuaikan mode
-                          width: 2,
-                        ),
                       ),
                     ),
                   );
