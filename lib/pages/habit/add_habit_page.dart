@@ -780,6 +780,8 @@ class _AddHabitPageState extends State<AddHabitPage> {
                       children: [
                         // Taruh komponen input durasi Anda di sini (misal: TextField atau Wheel Picker)
                         TextField(
+                          autofocus:
+                              true, // Keyboard otomatis buka pas widget ini muncul
                           style: TextStyle(
                             color: theme.textColor,
                           ),
@@ -877,6 +879,8 @@ class _AddHabitPageState extends State<AddHabitPage> {
                     Expanded(
                       flex: 2,
                       child: TextField(
+                        autofocus:
+                            true, // Keyboard otomatis buka pas widget ini muncul
                         controller: targetNumberController,
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
@@ -1387,6 +1391,7 @@ class _AddHabitPageState extends State<AddHabitPage> {
               const SizedBox(height: 10),
 
               TextField(
+                autofocus: true, // Keyboard otomatis buka pas widget ini muncul
                 // TAMBAHKAN KODE INI agar warna teks yang diketik berubah jadi putih saat Dark Mode
                 style: TextStyle(
                   color: theme.textColor,
@@ -1410,6 +1415,7 @@ class _AddHabitPageState extends State<AddHabitPage> {
               const SizedBox(height: 10),
 
               TextField(
+                autofocus: true, // Keyboard otomatis buka pas widget ini muncul
                 // TAMBAHKAN KODE INI agar warna teks yang diketik berubah jadi putih saat Dark Mode
                 style: TextStyle(
                   color: theme.textColor,
@@ -1431,6 +1437,7 @@ class _AddHabitPageState extends State<AddHabitPage> {
               const SizedBox(height: 10),
 
               TextField(
+                autofocus: true, // Keyboard otomatis buka pas widget ini muncul
                 // TAMBAHKAN KODE INI agar warna teks yang diketik berubah jadi putih saat Dark Mode
                 style: TextStyle(
                   color: theme.textColor,
