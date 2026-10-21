@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:habit_tracker/providers/focus_provider.dart';
 import 'package:habit_tracker/providers/habit_provider.dart';
 import 'package:habit_tracker/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
+
+enum StatsViewType {
+  weekly,
+  monthly,
+  yearly,
+}
 
 class StatisticsPage extends StatefulWidget {
   const StatisticsPage({super.key});
@@ -14,35 +20,48 @@ class StatisticsPage extends StatefulWidget {
 }
 
 class _StatisticsPageState extends State<StatisticsPage> {
-  DateTime selectedMonth = DateTime.now();
+  StatsViewType currentView = StatsViewType.weekly;
+  DateTime selectedDate = DateTime.now();
 
-  int _daysInMonth(DateTime date) {
-    return DateTime(date.year, date.month + 1, 0).day;
-  }
+  final List<String> _shortMonthNames = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'Mei',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
+  ];
 
-  double _getCompletionRatioForDate(HabitProvider provider, DateTime date) {
-    final habitsForMonth = provider.getHabitsByMonth(date);
-
-    final habitsForDay = habitsForMonth.where((h) {
-      return h.date.year == date.year &&
-          h.date.month == date.month &&
-          h.date.day == date.day;
-    }).toList();
-
-    if (habitsForDay.isEmpty) return 0.0;
-
-    final completedCount = habitsForDay.where((e) => e.completed).length;
-    return completedCount / habitsForDay.length;
-  }
+  final List<String> _fullMonthNames = [
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
+  ];
 
   @override
   Widget build(BuildContext context) {
     final habitProvider = Provider.of<HabitProvider>(context);
     final focusProvider = Provider.of<FocusProvider>(context);
     final theme = Provider.of<ThemeProvider>(context).currentTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Kalkulasi Data Bulanan
-    final habitsThisMonth = habitProvider.getHabitsByMonth(selectedMonth);
+    // Kalkulasi Data Bulanan untuk Kartu Ringkasan
+    final habitsThisMonth = habitProvider.getHabitsByMonth(selectedDate);
     final completedHabits = habitsThisMonth.where((e) => e.completed).length;
     final totalHabits = habitsThisMonth.length;
     final monthlyPercent =
@@ -116,19 +135,100 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }
 
     // ==========================================
-    // 3. RENTANG MINGGUAN (SENIN SAMPAI MINGGU)
+    // 3. DATA GRAFIK (FL_CHART)
     // ==========================================
-    final now = DateTime.now();
-    // Cari tanggal hari Senin minggu ini (weekday: 1 = Senin, 7 = Minggu)
-    final mondayThisWeek = now.subtract(Duration(days: now.weekday - 1));
+    List<double> chartData = [];
+    List<String> labels = [];
+    String periodLabel = "";
 
-    // Generasi 7 hari berturut-turut dari Senin sampai Minggu
-    final weekDays = List.generate(7, (index) {
-      return mondayThisWeek.add(Duration(days: index));
-    });
+    if (currentView == StatsViewType.weekly) {
+      final monday =
+          selectedDate.subtract(Duration(days: selectedDate.weekday - 1));
+      final sunday = monday.add(const Duration(days: 6));
 
-    final weekStartDate = DateFormat("dd").format(weekDays.first);
-    final weekEndDate = DateFormat("dd").format(weekDays.last);
+      labels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+      chartData = List.generate(7, (i) {
+        final day = monday.add(Duration(days: i));
+        final habitsForDay = habitsThisMonth
+            .where((h) =>
+                h.date.year == day.year &&
+                h.date.month == day.month &&
+                h.date.day == day.day)
+            .toList();
+        if (habitsForDay.isEmpty) return 0.0;
+        final comp = habitsForDay.where((e) => e.completed).length;
+        return (comp / habitsForDay.length) * 100;
+      });
+
+      periodLabel =
+          "${monday.day} ${_shortMonthNames[monday.month - 1]} - ${sunday.day} ${_shortMonthNames[sunday.month - 1]} ${sunday.year}";
+    } else if (currentView == StatsViewType.monthly) {
+      final daysInMonth =
+          DateTime(selectedDate.year, selectedDate.month + 1, 0).day;
+      labels = List.generate(daysInMonth, (i) => "${i + 1}");
+
+      chartData = List.generate(daysInMonth, (i) {
+        final day = DateTime(selectedDate.year, selectedDate.month, i + 1);
+        final habitsForDay = habitsThisMonth
+            .where((h) =>
+                h.date.year == day.year &&
+                h.date.month == day.month &&
+                h.date.day == day.day)
+            .toList();
+        if (habitsForDay.isEmpty) return 0.0;
+        final comp = habitsForDay.where((e) => e.completed).length;
+        return (comp / habitsForDay.length) * 100;
+      });
+
+      periodLabel =
+          "${_fullMonthNames[selectedDate.month - 1]} ${selectedDate.year}";
+    } else {
+      labels = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'Mei',
+        'Jun',
+        'Jul',
+        'Agu',
+        'Sep',
+        'Okt',
+        'Nov',
+        'Des'
+      ];
+      chartData = List.generate(12, (i) {
+        double monthTotal = 0;
+        final daysInMonth = DateTime(selectedDate.year, i + 2, 0).day;
+        for (int d = 1; d <= daysInMonth; d++) {
+          final day = DateTime(selectedDate.year, i + 1, d);
+          final habitsForDay = habitsThisMonth
+              .where((h) =>
+                  h.date.year == day.year &&
+                  h.date.month == day.month &&
+                  h.date.day == day.day)
+              .toList();
+          if (habitsForDay.isNotEmpty) {
+            final comp = habitsForDay.where((e) => e.completed).length;
+            monthTotal += (comp / habitsForDay.length) * 100;
+          }
+        }
+        return daysInMonth > 0 ? (monthTotal / daysInMonth) : 0.0;
+      });
+
+      periodLabel = "${selectedDate.year}";
+    }
+
+    double chartWidth;
+    if (currentView == StatsViewType.weekly) {
+      // Ubah angka 60.0 di bawah ini untuk mengatur jarak antar hari pada mode Minggu
+      // Makin besar angkanya, makin lebar jaraknya dan makin enak di-scroll
+      chartWidth = 7 * 55.0;
+    } else if (currentView == StatsViewType.monthly) {
+      chartWidth = chartData.length * 36.0;
+    } else {
+      chartWidth = chartData.length * 52.0;
+    }
 
     return Scaffold(
       backgroundColor: theme.backgroundColor,
@@ -154,7 +254,213 @@ class _StatisticsPageState extends State<StatisticsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              /// TOP STATS GRID
+              /// 1. TOGGLE (Minggu / Bulan / Tahun) DI ATAS
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  color: theme.cardColor,
+                  border: Border.all(
+                    color: theme.textColor.withOpacity(0.1),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    _buildToggle(
+                        title: "Minggu",
+                        type: StatsViewType.weekly,
+                        theme: theme),
+                    _buildToggle(
+                        title: "Bulan",
+                        type: StatsViewType.monthly,
+                        theme: theme),
+                    _buildToggle(
+                        title: "Tahun",
+                        type: StatsViewType.yearly,
+                        theme: theme),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              /// 2. PERIOD NAVIGATOR (PANAH KIRI / KANAN & TANGGAL)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    onPressed: previousPeriod,
+                    icon: Icon(Icons.chevron_left,
+                        color: theme.primaryColor, size: 28),
+                  ),
+                  Text(
+                    periodLabel,
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: theme.textColor,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: nextPeriod,
+                    icon: Icon(Icons.chevron_right,
+                        color: theme.primaryColor, size: 28),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              /// 3. KARTU GRAFIK AKTIVITAS UTAMA
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: theme.cardColor,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Habit Activity",
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: theme.textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      height: 240,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        child: SizedBox(
+                          width: chartWidth <
+                                  MediaQuery.of(context).size.width - 80
+                              ? MediaQuery.of(context).size.width - 80
+                              : chartWidth,
+                          child: BarChart(
+                            BarChartData(
+                              maxY: 100,
+                              alignment: BarChartAlignment.spaceAround,
+                              borderData: FlBorderData(show: false),
+                              gridData: FlGridData(
+                                show: true,
+                                drawVerticalLine: false,
+                                horizontalInterval: 20,
+                                getDrawingHorizontalLine: (value) {
+                                  return FlLine(
+                                    color: isDark
+                                        ? Colors.white12
+                                        : Colors.grey.shade200,
+                                    strokeWidth: 1,
+                                  );
+                                },
+                              ),
+                              titlesData: FlTitlesData(
+                                topTitles: const AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false)),
+                                rightTitles: const AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false)),
+                                leftTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    reservedSize: 35,
+                                    interval: 20,
+                                    getTitlesWidget: (value, meta) {
+                                      if (value == 0) return const SizedBox();
+                                      return Text(
+                                        "${value.toInt()}%",
+                                        style: GoogleFonts.poppins(
+                                          color:
+                                              theme.textColor.withOpacity(0.6),
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 10,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                                bottomTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    reservedSize: 30,
+                                    getTitlesWidget: (value, meta) {
+                                      final index = value.toInt();
+                                      if (index < 0 || index >= labels.length) {
+                                        return const SizedBox();
+                                      }
+                                      return Padding(
+                                        padding: const EdgeInsets.only(top: 8),
+                                        child: Text(
+                                          labels[index],
+                                          style: GoogleFonts.poppins(
+                                            color: theme.textColor
+                                                .withOpacity(0.6),
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                              barGroups: List.generate(
+                                chartData.length,
+                                (index) {
+                                  final value = chartData[index];
+                                  double rodWidth =
+                                      currentView == StatsViewType.weekly
+                                          ? 22
+                                          : 22;
+
+                                  return BarChartGroupData(
+                                    x: index,
+                                    barRods: [
+                                      BarChartRodData(
+                                        toY: value,
+                                        width: rodWidth,
+                                        borderRadius: BorderRadius.circular(6),
+                                        gradient: LinearGradient(
+                                          begin: Alignment.bottomCenter,
+                                          end: Alignment.topCenter,
+                                          colors: [
+                                            theme.primaryColor,
+                                            theme.primaryColor.withOpacity(0.4),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 28),
+
+              /// 4 KOTAK STATISTIK DI BAGIAN BAWAH
+              Text(
+                "Ringkasan",
+                style: GoogleFonts.poppins(
+                  color: theme.textColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
               GridView.count(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -191,127 +497,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 28),
-
-              /// WEEKLY PROGRESS (SENIN - MINGGU)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Mingguan",
-                    style: GoogleFonts.poppins(
-                      color: theme.textColor,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Text(
-                    "$weekStartDate - $weekEndDate",
-                    style: GoogleFonts.poppins(
-                      color: theme.primaryColor,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-                decoration: BoxDecoration(
-                  color: theme.cardColor,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: weekDays.map((date) {
-                    final dayName = DateFormat("EEE", "id_ID").format(date);
-                    final ratio =
-                        _getCompletionRatioForDate(habitProvider, date);
-                    return _buildUnifiedBar(
-                      label: dayName,
-                      ratio: ratio,
-                      theme: theme,
-                      barWidth: 22,
-                    );
-                  }).toList(),
-                ),
-              ),
-              const SizedBox(height: 28),
-
-              /// MONTHLY PROGRESS
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Bulanan",
-                    style: GoogleFonts.poppins(
-                      color: theme.textColor,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => setState(() => selectedMonth = DateTime(
-                            selectedMonth.year, selectedMonth.month - 1)),
-                        child: const Icon(Icons.chevron_left_rounded, size: 24),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        DateFormat("MMMM yyyy", "id_ID").format(selectedMonth),
-                        style: GoogleFonts.poppins(
-                          color: theme.primaryColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      GestureDetector(
-                        onTap: () => setState(() => selectedMonth = DateTime(
-                            selectedMonth.year, selectedMonth.month + 1)),
-                        child:
-                            const Icon(Icons.chevron_right_rounded, size: 24),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-                decoration: BoxDecoration(
-                  color: theme.cardColor,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: SizedBox(
-                  height: 165,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _daysInMonth(selectedMonth),
-                    itemBuilder: (context, index) {
-                      final dayDate = DateTime(
-                          selectedMonth.year, selectedMonth.month, index + 1);
-                      final ratio =
-                          _getCompletionRatioForDate(habitProvider, dayDate);
-
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 14),
-                        child: _buildUnifiedBar(
-                          label: "${index + 1}",
-                          ratio: ratio,
-                          theme: theme,
-                          barWidth: 22,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
               const SizedBox(height: 10),
             ],
           ),
@@ -320,7 +505,68 @@ class _StatisticsPageState extends State<StatisticsPage> {
     );
   }
 
-  /// HELPER STAT CARDS
+  void previousPeriod() {
+    setState(() {
+      if (currentView == StatsViewType.weekly) {
+        selectedDate = selectedDate.subtract(const Duration(days: 7));
+      } else if (currentView == StatsViewType.monthly) {
+        selectedDate = DateTime(selectedDate.year, selectedDate.month - 1);
+      } else {
+        selectedDate = DateTime(selectedDate.year - 1);
+      }
+    });
+  }
+
+  void nextPeriod() {
+    setState(() {
+      if (currentView == StatsViewType.weekly) {
+        selectedDate = selectedDate.add(const Duration(days: 7));
+      } else if (currentView == StatsViewType.monthly) {
+        selectedDate = DateTime(selectedDate.year, selectedDate.month + 1);
+      } else {
+        selectedDate = DateTime(selectedDate.year + 1);
+      }
+    });
+  }
+
+  Widget _buildToggle({
+    required String title,
+    required StatsViewType type,
+    required dynamic theme,
+  }) {
+    final isSelected = currentView == type;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            currentView = type;
+          });
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: isSelected ? theme.primaryColor : Colors.transparent,
+          ),
+          child: Center(
+            child: Text(
+              title,
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: isSelected
+                    ? Colors.white
+                    : theme.textColor.withOpacity(0.6),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildStatCard({
     required String title,
     required String value,
@@ -448,68 +694,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
           ),
         ],
       ),
-    );
-  }
-
-  /// HELPER UNIFIED PROGRESS BAR
-  Widget _buildUnifiedBar({
-    required String label,
-    required double ratio,
-    required dynamic theme,
-    double barWidth = 22,
-  }) {
-    const double barMaxHeight = 100.0;
-    final int percentage = (ratio.clamp(0.0, 1.0) * 100).toInt();
-
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        SizedBox(
-          height: 16,
-          child: FittedBox(
-            child: Text(
-              "$percentage%",
-              style: GoogleFonts.poppins(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade600,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          width: barWidth,
-          height: barMaxHeight,
-          decoration: BoxDecoration(
-            color: theme.primaryColor.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Stack(
-            alignment: Alignment.bottomCenter,
-            children: [
-              FractionallySizedBox(
-                heightFactor: ratio.clamp(0.0, 1.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: theme.primaryColor,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            color: theme.textColor,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
     );
   }
 }

@@ -1,10 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:habit_tracker/pages/auth/providers/auth_provider.dart';
-import 'package:habit_tracker/pages/calendar/calendar_page.dart';
 import 'package:habit_tracker/pages/focus/focus_page.dart';
-import 'package:habit_tracker/pages/habit/habit_page.dart';
-import 'package:habit_tracker/pages/profile/profile_page.dart';
+import 'package:habit_tracker/pages/navigation/custom_bottom_nav.dart';
 import 'package:habit_tracker/providers/focus_provider.dart';
 import 'package:habit_tracker/providers/habit_provider.dart';
 import 'package:habit_tracker/providers/theme_provider.dart';
@@ -20,13 +19,60 @@ class HomePage extends StatelessWidget {
     final theme = Provider.of<ThemeProvider>(context).currentTheme;
     final auth = Provider.of<AuthProvider>(context);
 
+    // Fungsi untuk mendapatkan sapaan otomatis berdasarkan jam saat ini
+    String _getGreeting() {
+      final hour = DateTime.now().hour;
+      if (hour >= 4 && hour < 11) {
+        return "Selamat Pagi,";
+      } else if (hour >= 11 && hour < 15) {
+        return "Selamat Siang,";
+      } else if (hour >= 15 && hour < 18) {
+        return "Selamat Sore,";
+      } else {
+        return "Selamat Malam,";
+      }
+    }
+
+    // Helper Widget untuk Menampilkan Avatar Sesuai Pilihan User
+    Widget _buildHomeAvatar(AuthProvider auth, dynamic theme) {
+      if (auth.profileImagePath != null && auth.profileImagePath!.isNotEmpty) {
+        return CircleAvatar(
+          radius: 24,
+          backgroundImage: FileImage(File(auth.profileImagePath!)),
+        );
+      } else if (auth.useDefaultIcon) {
+        return CircleAvatar(
+          radius: 24,
+          backgroundColor: theme.softColor,
+          child: Icon(
+            Icons.person_rounded,
+            size: 26,
+            color: theme.primaryColor,
+          ),
+        );
+      } else {
+        return CircleAvatar(
+          radius: 24,
+          backgroundColor: theme.softColor,
+          child: Text(
+            auth.initialName,
+            style: GoogleFonts.poppins(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: theme.primaryColor,
+            ),
+          ),
+        );
+      }
+    }
+
     return Scaffold(
       backgroundColor: theme.backgroundColor,
 
       /// =========================
       /// BOTTOM NAVBAR
       /// =========================
-      bottomNavigationBar: const _BottomNavbar(currentIndex: 0),
+      bottomNavigationBar: const CustomBottomNav(currentIndex: 0),
 
       body: SafeArea(
         child: SingleChildScrollView(
@@ -39,29 +85,18 @@ class HomePage extends StatelessWidget {
               /// =========================
               Row(
                 children: [
-                  /// Avatar
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: theme.softColor,
-                    child: Text(
-                      auth.name.isNotEmpty ? auth.name[0].toUpperCase() : "U",
-                      style: GoogleFonts.poppins(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: theme.primaryColor,
-                      ),
-                    ),
-                  ),
+                  /// Avatar Dinamis
+                  _buildHomeAvatar(auth, theme),
 
                   const SizedBox(width: 12),
 
-                  /// Greeting
+                  /// Greeting Live Otomatis
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Selamat Pagi,",
+                          _getGreeting(), // Berubah otomatis sesuai jam (Pagi/Siang/Sore/Malam)
                           style: GoogleFonts.poppins(
                             fontSize: 13,
                             color: theme.iconColor.withOpacity(0.7),
@@ -407,108 +442,6 @@ class HomePage extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _BottomNavbar extends StatelessWidget {
-  final int currentIndex;
-
-  const _BottomNavbar({
-    required this.currentIndex,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Provider.of<ThemeProvider>(
-      context,
-    ).currentTheme;
-
-    return BottomNavigationBar(
-      currentIndex: currentIndex,
-      onTap: (index) {
-        switch (index) {
-          /// HOME
-
-          case 0:
-            break;
-
-          /// HABIT
-
-          case 1:
-            Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const HabitPage(),
-                ));
-
-            break;
-
-          /// TIMER
-
-          case 2:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const FocusPage(),
-              ),
-            );
-
-            break;
-
-          /// CALENDAR
-
-          case 3:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const CalendarPage(),
-              ),
-            );
-
-            break;
-
-          /// PROFILE
-
-          case 4:
-            Navigator.pushReplacement(context,
-                MaterialPageRoute(builder: (_) => const ProfilePage()));
-
-            break;
-        }
-      },
-      elevation: 0,
-      type: BottomNavigationBarType.fixed,
-      backgroundColor: theme.cardColor,
-      selectedItemColor: theme.primaryColor,
-      unselectedItemColor: Colors.grey,
-      selectedIconTheme: const IconThemeData(
-        size: 28,
-      ),
-      showSelectedLabels: false,
-      showUnselectedLabels: false,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_rounded),
-          label: '',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.task_alt),
-          label: '',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.timer_outlined),
-          label: '',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_month),
-          label: '',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline_rounded),
-          label: '',
-        ),
-      ],
     );
   }
 }

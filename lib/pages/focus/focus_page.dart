@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:habit_tracker/pages/calendar/calendar_page.dart';
-import 'package:habit_tracker/pages/habit/habit_page.dart';
-import 'package:habit_tracker/pages/home/home_page.dart';
-import 'package:habit_tracker/pages/profile/profile_page.dart';
+import 'package:habit_tracker/pages/navigation/custom_bottom_nav.dart';
 import 'package:habit_tracker/providers/focus_provider.dart';
 import 'package:habit_tracker/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
@@ -17,7 +14,7 @@ class FocusPage extends StatelessWidget {
     final theme = Provider.of<ThemeProvider>(context).currentTheme;
 
     return Scaffold(
-      bottomNavigationBar: const _BottomNavbar(currentIndex: 2),
+      bottomNavigationBar: const CustomBottomNav(currentIndex: 2),
       backgroundColor: theme.backgroundColor,
       body: SafeArea(
         child: LayoutBuilder(
@@ -275,91 +272,6 @@ class FocusPage extends StatelessWidget {
         color: theme.iconColor,
         size: boxSize * 0.45,
       ),
-    );
-  }
-}
-
-class _BottomNavbar extends StatelessWidget {
-  final int currentIndex;
-
-  const _BottomNavbar({
-    required this.currentIndex,
-  });
-
-  void _navigateTo(BuildContext context, Widget page) {
-    // Menunda navigasi hingga frame selesai di-render agar tidak bug/lag
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (context.mounted) {
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (_, __, ___) => page,
-            transitionDuration:
-                Duration.zero, // Menghilangkan delay animasi berlebih
-          ),
-        );
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Provider.of<ThemeProvider>(context).currentTheme;
-
-    return BottomNavigationBar(
-      currentIndex: currentIndex,
-      onTap: (index) {
-        if (index == currentIndex)
-          return; // Mencegah re-navigate ke halaman yang sama
-
-        switch (index) {
-          case 0:
-            _navigateTo(context, const HomePage());
-            break;
-          case 1:
-            _navigateTo(context, const HabitPage());
-            break;
-          case 2:
-            // Halaman saat ini (FocusPage), tidak melakukan apa-apa
-            break;
-          case 3:
-            _navigateTo(context, const CalendarPage());
-            break;
-          case 4:
-            _navigateTo(context, const ProfilePage());
-            break;
-        }
-      },
-      elevation: 0,
-      type: BottomNavigationBarType.fixed,
-      backgroundColor: theme.cardColor,
-      selectedItemColor: theme.primaryColor,
-      unselectedItemColor: Colors.grey,
-      selectedIconTheme: const IconThemeData(size: 26),
-      showSelectedLabels: false,
-      showUnselectedLabels: false,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_rounded),
-          label: '',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.task_alt),
-          label: '',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.timer_outlined),
-          label: '',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_month),
-          label: '',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline_rounded),
-          label: '',
-        ),
-      ],
     );
   }
 }

@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:habit_tracker/pages/focus/focus_page.dart';
-import 'package:habit_tracker/pages/habit/habit_page.dart';
-import 'package:habit_tracker/pages/home/home_page.dart';
-import 'package:habit_tracker/pages/profile/profile_page.dart';
+import 'package:habit_tracker/pages/navigation/custom_bottom_nav.dart';
 import 'package:habit_tracker/pages/statistics/statistics_page.dart';
 import 'package:habit_tracker/providers/focus_provider.dart';
 import 'package:habit_tracker/providers/habit_provider.dart';
@@ -56,7 +53,7 @@ class _CalendarPageState extends State<CalendarPage> {
         ),
         centerTitle: true,
       ),
-      bottomNavigationBar: const _BottomNavbar(currentIndex: 3),
+      bottomNavigationBar: const CustomBottomNav(currentIndex: 3),
       // MEMPERBAIKI OVERFLOW: Menggunakan SingleChildScrollView agar layar bisa di-scroll saat ruang sempit
       body: SafeArea(
         child: SingleChildScrollView(
@@ -811,57 +808,4 @@ Widget _buildMinimalTile(
           ),
         ],
       ));
-}
-
-class _BottomNavbar extends StatelessWidget {
-  final int currentIndex;
-  const _BottomNavbar({required this.currentIndex});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Provider.of<ThemeProvider>(context).currentTheme;
-
-    return BottomNavigationBar(
-      currentIndex: currentIndex,
-      onTap: (index) {
-        if (index == currentIndex) return;
-        switch (index) {
-          case 0:
-            Navigator.pushReplacement(
-                context, MaterialPageRoute(builder: (_) => const HomePage()));
-            break;
-          case 1:
-            Navigator.pushReplacement(
-                context, MaterialPageRoute(builder: (_) => const HabitPage()));
-            break;
-          case 2:
-            Navigator.pushReplacement(
-                context, MaterialPageRoute(builder: (_) => const FocusPage()));
-            break;
-          case 3:
-            break;
-          case 4:
-            Navigator.pushReplacement(context,
-                MaterialPageRoute(builder: (_) => const ProfilePage()));
-            break;
-        }
-      },
-      elevation: 0,
-      type: BottomNavigationBarType.fixed,
-      backgroundColor: theme.cardColor,
-      selectedItemColor: theme.primaryColor,
-      unselectedItemColor: Colors.grey,
-      selectedIconTheme: const IconThemeData(size: 28),
-      showSelectedLabels: false,
-      showUnselectedLabels: false,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: ''),
-        BottomNavigationBarItem(icon: Icon(Icons.task_alt), label: ''),
-        BottomNavigationBarItem(icon: Icon(Icons.timer_outlined), label: ''),
-        BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: ''),
-        BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline_rounded), label: ''),
-      ],
-    );
-  }
 }

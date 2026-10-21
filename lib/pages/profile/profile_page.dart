@@ -1,61 +1,144 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:habit_tracker/pages/navigation/custom_bottom_nav.dart';
+import 'package:provider/provider.dart';
 import 'package:habit_tracker/core/theme/theme_data.dart';
 import 'package:habit_tracker/pages/auth/login_page.dart';
 import 'package:habit_tracker/pages/auth/providers/auth_provider.dart';
-import 'package:habit_tracker/pages/calendar/calendar_page.dart';
-import 'package:habit_tracker/pages/focus/focus_page.dart';
-import 'package:habit_tracker/pages/habit/habit_page.dart';
-import 'package:habit_tracker/pages/home/home_page.dart';
 import 'package:habit_tracker/providers/theme_provider.dart';
-import 'package:provider/provider.dart';
+import 'edit_profile_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
+  // Pop-up Dialog Konfirmasi Keluar
+  void _showLogoutDialog(BuildContext context, dynamic theme) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: theme.cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        title: Row(
+          children: [
+            Text(
+              "Konfirmasi Keluar",
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: 17,
+                color: theme.textColor,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          "Apakah Anda yakin ingin keluar dari akun ini?",
+          style: GoogleFonts.poppins(
+            fontSize: 15,
+            color: theme.textColor.withOpacity(0.8),
+          ),
+        ),
+        actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              "Batal",
+              style: GoogleFonts.poppins(
+                color: Colors.grey,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await context.read<AuthProvider>().logout();
+
+              if (!context.mounted) return;
+
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const LoginPage(),
+                ),
+                (route) => false,
+              );
+            },
+            child: Text(
+              "Keluar",
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget Tampilan Avatar Dinamis (Mendukung Foto, Icon Person, atau Inisial)
+  Widget _buildAvatarDisplay(AuthProvider auth, dynamic theme) {
+    if (auth.profileImagePath != null && auth.profileImagePath!.isNotEmpty) {
+      return CircleAvatar(
+        radius: 52,
+        backgroundImage: FileImage(File(auth.profileImagePath!)),
+      );
+    } else if (auth.useDefaultIcon) {
+      return CircleAvatar(
+        radius: 52,
+        backgroundColor: theme.softColor,
+        child: Icon(
+          Icons.person_rounded,
+          size: 50,
+          color: theme.primaryColor,
+        ),
+      );
+    } else {
+      return CircleAvatar(
+        radius: 52,
+        backgroundColor: theme.softColor,
+        child: Text(
+          auth.initialName,
+          style: GoogleFonts.poppins(
+            fontSize: 40,
+            fontWeight: FontWeight.bold,
+            color: theme.primaryColor,
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Provider.of<ThemeProvider>(
-      context,
-    ).currentTheme;
-
-    final auth = Provider.of<AuthProvider>(
-      context,
-    );
+    final theme = Provider.of<ThemeProvider>(context).currentTheme;
+    final auth = Provider.of<AuthProvider>(context);
 
     return Scaffold(
       backgroundColor: theme.backgroundColor,
-
-      /// =========================
-      /// BOTTOM NAVBAR
-      /// =========================
-      bottomNavigationBar: const _BottomNavbar(
-        currentIndex: 4,
-      ),
-
+      bottomNavigationBar: const CustomBottomNav(currentIndex: 4),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                /// =========================
-                /// PROFILE HEADER
-                /// =========================
                 const SizedBox(height: 10),
 
-                CircleAvatar(
-                  radius: 52,
-                  backgroundColor: theme.softColor,
-                  child: Text(
-                    auth.name.isNotEmpty ? auth.name[0].toUpperCase() : "U",
-                    style: GoogleFonts.poppins(
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold,
-                      color: theme.primaryColor,
-                    ),
-                  ),
-                ),
+                // Avatar Profil Utama
+                _buildAvatarDisplay(auth, theme),
 
                 const SizedBox(height: 12),
 
@@ -80,56 +163,43 @@ class ProfilePage extends StatelessWidget {
 
                 const SizedBox(height: 34),
 
-                /// =========================
-                /// MENU LIST
-                /// =========================
+                // Menu List
                 _buildMenuTile(
                   context: context,
                   icon: Icons.person_outline_rounded,
                   title: "Edit Profile",
                   theme: theme,
-                  onTap: () {},
-                ),
-
-                const SizedBox(height: 14),
-
-                _buildMenuTile(
-                  context: context,
-                  icon: Icons.settings_outlined,
-                  title: "Pengaturan",
-                  theme: theme,
-                  onTap: () {},
-                ),
-
-                const SizedBox(height: 14),
-
-                /// MODE LIGHT/DARK
-                _buildMenuTile(
-                  context: context,
-                  icon: Icons.dark_mode_rounded,
-                  title: "Mode Aplikasi",
-                  theme: theme,
                   onTap: () {
-                    _showModeBottomSheet(
+                    Navigator.push(
                       context,
-                      theme,
+                      MaterialPageRoute(
+                        builder: (_) => const EditProfilePage(),
+                      ),
                     );
                   },
                 ),
 
                 const SizedBox(height: 14),
 
-                /// COLOR
+                _buildMenuTile(
+                  context: context,
+                  icon: Icons.dark_mode_rounded,
+                  title: "Mode Aplikasi",
+                  theme: theme,
+                  onTap: () {
+                    _showModeBottomSheet(context, theme);
+                  },
+                ),
+
+                const SizedBox(height: 14),
+
                 _buildMenuTile(
                   context: context,
                   icon: Icons.palette_outlined,
                   title: "Warna Tema",
                   theme: theme,
                   onTap: () {
-                    _showColorThemeBottomSheet(
-                      context,
-                      theme,
-                    );
+                    _showColorThemeBottomSheet(context, theme);
                   },
                 ),
 
@@ -155,28 +225,15 @@ class ProfilePage extends StatelessWidget {
 
                 const SizedBox(height: 14),
 
-                /// KELUAR / LOGOUT
                 _buildMenuTile(
                   context: context,
                   icon: Icons.logout_rounded,
                   title: "Keluar",
                   theme: theme,
-                  onTap: () async {
-                    await context.read<AuthProvider>().logout();
-
-                    if (!context.mounted) return;
-
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const LoginPage(),
-                      ),
-                      (route) => false,
-                    );
-                  },
+                  onTap: () => _showLogoutDialog(context, theme),
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 7),
               ],
             ),
           ),
@@ -185,9 +242,6 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  /// =========================
-  /// MENU TILE
-  /// =========================
   Widget _buildMenuTile({
     required BuildContext context,
     required IconData icon,
@@ -198,24 +252,15 @@ class ProfilePage extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 18,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
         decoration: BoxDecoration(
           color: theme.cardColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: Colors.grey.shade200,
-          ),
+          border: Border.all(color: Colors.grey.shade200),
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              size: 28,
-              color: Colors.grey.shade400,
-            ),
+            Icon(icon, size: 28, color: Colors.grey.shade400),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
@@ -238,17 +283,8 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  /// =========================
-  /// BOTTOMSHEET MODE
-  /// =========================
-  void _showModeBottomSheet(
-    BuildContext context,
-    dynamic theme,
-  ) {
-    final themeProvider = Provider.of<ThemeProvider>(
-      context,
-      listen: false,
-    );
+  void _showModeBottomSheet(BuildContext context, dynamic theme) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
 
     showModalBottomSheet(
       context: context,
@@ -264,22 +300,11 @@ class ProfilePage extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              /// HANDLE BAR (Garis kecil di atas)
               Container(
                 width: 60,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: theme.textColor.withOpacity(
-                      0.2), // Mengikuti warna teks dengan transparansi
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-              Container(
-                width: 60,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: theme
-                      .cardColor, // 👈 Background bottom sheet sesuai mode (Light / Dark)
+                  color: theme.textColor.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
@@ -319,18 +344,8 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  /// =========================
-  /// BOTTOMSHEET COLOR
-  /// =========================
-
-  void _showColorThemeBottomSheet(
-    BuildContext context,
-    dynamic theme,
-  ) {
-    final themeProvider = Provider.of<ThemeProvider>(
-      context,
-      listen: false,
-    );
+  void _showColorThemeBottomSheet(BuildContext context, dynamic theme) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
 
     final themes = [
       greenTheme,
@@ -352,59 +367,47 @@ class ProfilePage extends StatelessWidget {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor:
-          Colors.transparent, // Agar rounded corner background terlihat
+      backgroundColor: Colors.transparent,
       builder: (_) {
         return Container(
           padding: const EdgeInsets.all(22),
           margin: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: theme
-                .cardColor, // 👈 Background bottom sheet sesuai mode (Light / Dark)
+            color: theme.cardColor,
             borderRadius: BorderRadius.circular(32),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              /// HANDLE BAR (Garis kecil di atas)
               Container(
                 width: 60,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: theme.textColor.withOpacity(
-                      0.2), // Mengikuti warna teks dengan transparansi
+                  color: theme.textColor.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
-
               const SizedBox(height: 20),
-
-              /// JUDUL
               Text(
                 "Pilih Warna Tema",
                 style: GoogleFonts.poppins(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color:
-                      theme.textColor, // 👈 Teks menyesuaikan Light / Dark Mode
+                  color: theme.textColor,
                 ),
               ),
-
               const SizedBox(height: 16),
-
-              /// GRID PILIHAN WARNA
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: themes.length,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 5, // Ditampilkan 5 kolom agar muat dan rapi
+                  crossAxisCount: 5,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
                 ),
                 itemBuilder: (context, index) {
                   final item = themes[index];
-
                   return GestureDetector(
                     onTap: () {
                       themeProvider.changeTheme(item);
@@ -426,9 +429,6 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  /// =========================
-  /// THEME ITEM
-  /// =========================
   Widget _buildThemeItem({
     required String title,
     required IconData icon,
@@ -445,10 +445,7 @@ class ProfilePage extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              color: theme.primaryColor,
-            ),
+            Icon(icon, color: theme.primaryColor),
             const SizedBox(width: 14),
             Expanded(
               child: Text(
@@ -460,106 +457,11 @@ class ProfilePage extends StatelessWidget {
                 ),
               ),
             ),
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 18,
-              color: theme.primaryColor,
-            ),
+            Icon(Icons.arrow_forward_ios_rounded,
+                size: 18, color: theme.primaryColor),
           ],
         ),
       ),
-    );
-  }
-}
-
-/// =========================
-/// BOTTOM NAVBAR
-/// =========================
-class _BottomNavbar extends StatelessWidget {
-  final int currentIndex;
-
-  const _BottomNavbar({
-    required this.currentIndex,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Provider.of<ThemeProvider>(
-      context,
-    ).currentTheme;
-
-    return BottomNavigationBar(
-      currentIndex: currentIndex,
-      elevation: 0,
-      type: BottomNavigationBarType.fixed,
-      backgroundColor: theme.cardColor,
-      selectedItemColor: theme.primaryColor,
-      unselectedItemColor: Colors.grey,
-      selectedIconTheme: const IconThemeData(
-        size: 28,
-      ),
-      showSelectedLabels: false,
-      showUnselectedLabels: false,
-      onTap: (index) {
-        switch (index) {
-          case 0:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const HomePage(),
-              ),
-            );
-            break;
-          case 1:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const HabitPage(),
-              ),
-            );
-            break;
-          case 2:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const FocusPage(),
-              ),
-            );
-            break;
-          case 3:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const CalendarPage(),
-              ),
-            );
-            break;
-          case 4:
-            break;
-        }
-      },
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_rounded),
-          label: '',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.task_alt_rounded),
-          label: '',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.timer_outlined),
-          label: '',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_month_rounded),
-          label: '',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_rounded),
-          label: '',
-        ),
-      ],
     );
   }
 }

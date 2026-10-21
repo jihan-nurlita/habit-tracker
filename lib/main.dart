@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:habit_tracker/pages/auth/login_page.dart';
 import 'package:habit_tracker/pages/auth/providers/auth_provider.dart';
 import 'package:habit_tracker/pages/home/home_page.dart';
+import 'package:habit_tracker/pages/onboarding/onboarding_page.dart';
+import 'package:habit_tracker/pages/splash/splash_page.dart';
 import 'package:habit_tracker/providers/focus_provider.dart';
 import 'package:habit_tracker/providers/habit_provider.dart';
 import 'package:habit_tracker/providers/theme_provider.dart';
@@ -48,10 +50,13 @@ class HabitTracker extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Habit Tracker',
       routes: {
+        '/splash': (context) => const SplashPage(),
+        '/onboarding': (context) => const OnboardingPage(),
         '/login': (context) => const LoginPage(),
         '/home': (context) => const HomePage(),
       },
-      home: const HomePage(),
+      // 2. Ganti home dari HomePage menjadi SplashScreen
+      home: const SplashPage(),
     );
   }
 }

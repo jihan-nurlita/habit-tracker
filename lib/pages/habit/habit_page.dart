@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:habit_tracker/pages/calendar/calendar_page.dart';
-import 'package:habit_tracker/pages/focus/focus_page.dart';
 import 'package:habit_tracker/pages/habit/add_habit_page.dart';
 import 'package:habit_tracker/pages/habit/widgets/habit_tile.dart';
-import 'package:habit_tracker/pages/home/home_page.dart';
-import 'package:habit_tracker/pages/profile/profile_page.dart';
+import 'package:habit_tracker/pages/navigation/custom_bottom_nav.dart';
 import 'package:habit_tracker/providers/habit_provider.dart';
 import 'package:habit_tracker/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
@@ -112,15 +109,18 @@ class _HabitPageState extends State<HabitPage> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
-          title: const Text(
+          title: Text(
             "Hapus Habit?",
             style: TextStyle(
               fontWeight: FontWeight.bold,
+              color: theme.textColor,
+              fontSize: 17,
             ),
           ),
           content: Text(
             'Apakah kamu yakin ingin menghapus "${habit.title}"?',
-            style: const TextStyle(
+            style: TextStyle(
+              color: theme.textColor.withOpacity(0.8),
               fontSize: 15,
             ),
           ),
@@ -224,9 +224,7 @@ class _HabitPageState extends State<HabitPage> {
       /// BOTTOM NAVBAR
       /// =========================
 
-      bottomNavigationBar: const _BottomNavbar(
-        currentIndex: 1,
-      ),
+      bottomNavigationBar: const CustomBottomNav(currentIndex: 1),
 
       body: SafeArea(
         child: Padding(
@@ -614,104 +612,6 @@ class _HabitPageState extends State<HabitPage> {
           color: selected ? Colors.white : theme.iconColor,
         ),
       ),
-    );
-  }
-}
-
-class _BottomNavbar extends StatelessWidget {
-  final int currentIndex;
-
-  const _BottomNavbar({
-    required this.currentIndex,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Provider.of<ThemeProvider>(
-      context,
-    ).currentTheme;
-
-    return BottomNavigationBar(
-      currentIndex: currentIndex,
-      onTap: (index) {
-        switch (index) {
-          /// HOME
-          case 0:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const HomePage(),
-              ),
-            );
-            break;
-
-          /// HABIT
-          case 1:
-            break;
-
-          /// TIMER
-          case 2:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const FocusPage(),
-              ),
-            );
-            break;
-
-          /// CALENDAR
-          case 3:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const CalendarPage(),
-              ),
-            );
-            break;
-
-          /// PROFILE
-          case 4:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const ProfilePage(),
-              ),
-            );
-            break;
-        }
-      },
-      elevation: 0,
-      type: BottomNavigationBarType.fixed,
-      backgroundColor: theme.cardColor,
-      selectedItemColor: theme.primaryColor,
-      unselectedItemColor: Colors.grey,
-      selectedIconTheme: const IconThemeData(
-        size: 28,
-      ),
-      showSelectedLabels: false,
-      showUnselectedLabels: false,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_rounded),
-          label: '',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.task_alt),
-          label: '',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.timer_outlined),
-          label: '',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_month),
-          label: '',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline_rounded),
-          label: '',
-        ),
-      ],
     );
   }
 }
